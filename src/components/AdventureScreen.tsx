@@ -4,6 +4,7 @@ import MatchPuzzle from "./MatchPuzzle";
 import SceneTransition from "./SceneTransition";
 import StoryMapPanel from "./StoryMapPanel";
 import CharacterCompanion from "./CharacterCompanion";
+import CompanionSpeech, { companionLine } from "./CompanionSpeech";
 import Icon from "./Icons";
 import { Story, StoryNode } from "../data/stories";
 import { Character } from "../data/characters";
@@ -12,11 +13,13 @@ interface Props {
   story: Story;
   character: Character;
   onEnd: (score: number, maxScore: number, conceptsMastered: string[]) => void;
+  /** قصة "موضوع خاص": قراءة فقط — بدون نقاط ولا مفاهيم ولا شاشة نتيجة */
+  readingMode?: boolean;
 }
 
 const MAX_SCORE = 400;
 
-export default function AdventureScreen({ story, character, onEnd }: Props) {
+export default function AdventureScreen({ story, character, onEnd, readingMode = false }: Props) {
   const [nodeId, setNodeId] = useState(story.startNode);
   const [score, setScore] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -166,6 +169,7 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
             currentNodeId={nodeId}
             visitedNodeIds={visitedNodeIds}
             score={score}
+            hideScore={readingMode}
             onClose={() => setMapOpen(false)}
           />
         </>
@@ -203,11 +207,13 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
           {/* Character (in listening/focus mode) + Score */}
           <div className="flex items-center gap-2 shrink-0">
             <CharacterCompanion character={character} variant="listen" size={30} label={character.name} compact />
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.18)" }}>
-              <Icon name="sparkle" size={12} filled className="text-amber-400" />
-              <span className="text-xs font-bold tabular-nums" style={{ color: "#d4a843" }}>{score}</span>
-            </div>
+            {!readingMode && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: "rgba(212,168,67,0.1)", border: "1px solid rgba(212,168,67,0.18)" }}>
+                <Icon name="sparkle" size={12} filled className="text-amber-400" />
+                <span className="text-xs font-bold tabular-nums" style={{ color: "#d4a843" }}>{score}</span>
+              </div>
+            )}
           </div>
         </header>
 
@@ -253,6 +259,21 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
               <h2 className="font-display text-2xl md:text-3xl mb-4" style={{ color: "#f0e6c8" }}>
                 {node.title}
               </h2>
+            )}
+
+            {/* البطل يرافق الطفل في قصص "موضوع خاص" */}
+            {readingMode && (
+              <CompanionSpeech
+                key={nodeId}
+                character={character}
+                text={companionLine(
+                  character,
+                  story.title,
+                  story.region,
+                  Object.keys(story.nodes).indexOf(nodeId),
+                  totalNodes,
+                )}
+              />
             )}
 
             {/* Narrative bubble */}
@@ -380,7 +401,7 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
               <>
                 {node.type === "narrative" && (
                   <button onClick={handleNext} className="btn-primary px-8 py-4 rounded-xl font-bold inline-flex items-center gap-2">
-                    تابع الرحلة <Icon name="arrow-left" size={16} />
+                    {readingMode ? "الجزء التالي" : "تابع الرحلة"} <Icon name="arrow-left" size={16} />
                   </button>
                 )}
                 {node.type === "match" && matchDone && (
@@ -396,7 +417,11 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
                       <Icon name="ornament" size={26} className="ornament" />
                     </div>
                     <button onClick={handleNext} className="btn-primary w-full py-5 rounded-2xl text-xl font-black animate-pulse-glow inline-flex items-center justify-center gap-2">
-                      اعرض نتيجتي <Icon name="sparkle" size={20} filled />
+                      {readingMode ? (
+                        <>أنهيت القصة <Icon name="check" size={20} /></>
+                      ) : (
+                        <>اعرض نتيجتي <Icon name="sparkle" size={20} filled /></>
+                      )}
                     </button>
                   </div>
                 )}
@@ -406,7 +431,7 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
         </div>
 
         {/* ── BOTTOM CONCEPTS BAR ── */}
-        <div
+        {!readingMode && <div
           className="relative z-20 shrink-0 flex items-center gap-2.5 px-4 py-2 overflow-x-auto"
           style={{ borderTop: "1px solid rgba(212,168,67,0.07)", background: "rgba(9,15,26,0.85)" }}
         >
@@ -422,7 +447,7 @@ export default function AdventureScreen({ story, character, onEnd }: Props) {
               {conceptsMastered.includes(c) && <Icon name="check" size={10} />}{c}
             </span>
           ))}
-        </div>
+        </div>}
       </div>
     </>
   );

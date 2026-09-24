@@ -7,7 +7,9 @@ import MapScreen from "./components/MapScreen";
 import GeneratingScreen from "./components/GeneratingScreen";
 import AdventureScreen from "./components/AdventureScreen";
 import ResultsScreen from "./components/ResultsScreen";
-import { waterCycleStory, foodChainsStory, subjectPresets } from "./data/stories";
+import StoryCompleteScreen from "./components/StoryCompleteScreen";
+import { waterCycleStory, foodChainsStory, subjectPresets, Story } from "./data/stories";
+import { warmUpServer } from "./api/storyApi";
 import { Character } from "./data/characters";
 import {
   PlayerProfile,
@@ -17,7 +19,7 @@ import {
   resetProfile,
 } from "./data/progress";
 
-type Screen = "landing" | "dashboard" | "setup" | "character" | "map" | "generating" | "adventure" | "results";
+type Screen = "landing" | "dashboard" | "setup" | "character" | "map" | "generating" | "adventure" | "results" | "storyComplete";
 
 interface GameState {
   score: number;
@@ -32,15 +34,24 @@ export default function App() {
   const [character, setCharacter] = useState<Character | null>(null);
   const [gameState, setGameState] = useState<GameState>({ score: 0, maxScore: 400, conceptsMastered: [] });
   const [profile, setProfile] = useState<PlayerProfile>(loadProfile);
+  // قصة "موضوع خاص" اللي ولّدها نموذج علام من السيرفر
+  const [customStory, setCustomStory] = useState<Story | null>(null);
   const isReturningUser = profile.adventures.length > 0;
 
+  // نصحّي سيرفر علام من أول ما يفتح التطبيق، عشان يكون جاهز وقت "موضوع خاص"
+  useEffect(() => {
+    warmUpServer();
+  }, []);
+
   const activeStory =
-    selectedPreset?.story === "food-chains-rub-al-khali"
+    customStory ??
+    (selectedPreset?.story === "food-chains-rub-al-khali"
       ? foodChainsStory
-      : waterCycleStory;
+      : waterCycleStory);
 
   const goToSetup = (preset?: (typeof subjectPresets)[0]) => {
     setSelectedPreset(preset);
+    setCustomStory(null);
     setScreen("setup");
   };
 
@@ -55,12 +66,17 @@ export default function App() {
     setProfile(fresh);
     setCharacter(null);
     setSelectedPreset(undefined);
+    setCustomStory(null);
     setGameState({ score: 0, maxScore: 400, conceptsMastered: [] });
     setScreen("landing");
   };
 
   const handleGenerate = (lesson: string, grade: string, subject: string) => {
-    setLessonInfo({ lesson, grade, subject });
+    // إذا الدرس من القصص الجاهزة نعرضها، وإلا يصير "موضوع خاص" ونولّده بعلام
+    const preset = subjectPresets.find((p) => p.story && p.lesson === lesson.trim());
+    setSelectedPreset(preset);
+    setCustomStory(null);
+    setLessonInfo({ lesson: lesson.trim(), grade, subject });
     setScreen("character");
   };
 
@@ -71,6 +87,11 @@ export default function App() {
   };
 
   const handleAdventureEnd = (score: number, maxScore: number, conceptsMastered: string[]) => {
+    // قصص "موضوع خاص" قراءة فقط: ما فيها أسئلة، فما نحسب نقاط ولا إنجازات
+    if (customStory) {
+      setScreen("storyComplete");
+      return;
+    }
     setGameState({ score, maxScore, conceptsMastered });
     const pct = Math.round((score / maxScore) * 100);
     const stars = pct >= 85 ? 3 : pct >= 60 ? 2 : 1;
@@ -138,7 +159,13 @@ export default function App() {
       {screen === "generating" && (
         <GeneratingScreen
           lesson={lessonInfo.lesson}
-          onComplete={() => setScreen("adventure")}
+          grade={lessonInfo.grade}
+          subject={lessonInfo.subject}
+          onComplete={(story) => {
+            setCustomStory(story);
+            setScreen("adventure");
+          }}
+          onBack={() => setScreen("setup")}
         />
       )}
       {screen === "adventure" && character && (
@@ -146,6 +173,16 @@ export default function App() {
           story={activeStory}
           character={character}
           onEnd={handleAdventureEnd}
+          readingMode={customStory !== null}
+        />
+      )}
+      {screen === "storyComplete" && character && customStory && (
+        <StoryCompleteScreen
+          story={customStory}
+          character={character}
+          onReadAgain={() => setScreen("adventure")}
+          onNewTopic={() => goToSetup()}
+          onHome={() => setScreen(isReturningUser ? "dashboard" : "landing")}
         />
       )}
       {screen === "results" && character && (

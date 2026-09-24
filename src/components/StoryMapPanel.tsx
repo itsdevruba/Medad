@@ -15,10 +15,12 @@ interface Props {
   currentNodeId: string;
   visitedNodeIds: string[];
   score: number;
+  /** قصة "موضوع خاص": نخفي النقاط */
+  hideScore?: boolean;
   onClose: () => void;
 }
 
-export default function StoryMapPanel({ story, currentNodeId, visitedNodeIds, score, onClose }: Props) {
+export default function StoryMapPanel({ story, currentNodeId, visitedNodeIds, score, hideScore = false, onClose }: Props) {
   const nodeOrder = buildNodeOrder(story);
 
   return (
@@ -44,8 +46,10 @@ export default function StoryMapPanel({ story, currentNodeId, visitedNodeIds, sc
       {/* Score */}
       <div className="px-5 py-3" style={{ borderBottom: "1px solid rgba(212,168,67,0.08)" }}>
         <div className="flex items-center justify-between">
-          <span className="text-xs" style={{ color: "#6b7f8e" }}>النقاط</span>
-          <span className="font-bold inline-flex items-center gap-1" style={{ color: "#d4a843" }}>{score} <Icon name="sparkle" size={12} filled /></span>
+          <span className="text-xs" style={{ color: "#6b7f8e" }}>{hideScore ? "تقدّم القراءة" : "النقاط"}</span>
+          {!hideScore && (
+            <span className="font-bold inline-flex items-center gap-1" style={{ color: "#d4a843" }}>{score} <Icon name="sparkle" size={12} filled /></span>
+          )}
         </div>
         <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
           <div className="h-full rounded-full"
