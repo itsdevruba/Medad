@@ -82,6 +82,8 @@ Medad-main/
 │   │   └── characters.ts       # بيانات الأبطال
 │   └── App.tsx
 ├── AI-work/                    # داتا التدريب ونوتبوك التدريب
+├── docs/                       # التقرير (المنهجية) ومخطط سير العمل والبوستر
+├── legacy/                     # نسخ قديمة ما عاد تُستخدم (سيرفر Kaggle + tunnel، نوتبوك قديم)
 ├── .env.example                # مثال لرابط السيرفر
 └── README.md
 ```
@@ -221,6 +223,5 @@ $env:PYTHONIOENCODING="utf-8"
 | `src/components/CompanionSpeech.tsx` | فقاعة كلام البطل المرافق |
 | `src/data/stories.ts` | شلنا صور الخلفية اللي ما لها علاقة بالقصص الجاهزة |
 | `src/data/characters.ts` | تصحيح ترحيب ملك: "ومتحمسة أتعلم وياك اليوم" |
-| `src/components/StoryCompleteScreen.tsx` | ما عاد مستخدم (استبدلناه بشاشة النتيجة) |
 | `src/assets/characters/*.png` | صور الأبطال (Git LFS) |
 | `.env.example`، `.gitignore` | مثال الرابط، والسماح برفع `.env.example` |
